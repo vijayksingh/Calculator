@@ -1,7 +1,13 @@
 import { useReducer, useState } from "react";
 import styled from "styled-components";
 import "./App.css";
+import {
+  DigitButton,
+  OperandButton,
+  ScientificButton,
+} from "./components/Button";
 import Wrapper from "./components/Wrapper";
+import { operationMap } from "./helpers/calculator";
 
 const ResultWrapper = styled.section`
   display: flex;
@@ -32,68 +38,25 @@ const InputWrapper = styled.section`
   height: 375px;
 `;
 
-const Button = styled.button`
-  display: inline-block;
-  width: 100px;
-  height: 75px;
-  text-align: center;
-  font-size: 1.5rem;
-  color: #cfcfcf;
-  border: 1px solid #252625;
-`;
-
-const OperandButton = styled(Button)`
-  background-color: #ff9f0b;
-  font-size: 2rem;
-  border-right: none;
-
-  &::last-child {
-    border-bottom-right-radius: 6px;
-  }
-`;
-
-const DigitButton = styled(Button)`
-  background-color: #5a5a5a;
-`;
-const ScientificButton = styled(Button)`
-  background-color: #3b3e3f;
-`;
-
 export default function App() {
   const [input, setInput] = useState(0);
-  const [actionState, setAction] = useState(null);
-
-  const operationMap = {
-    INCREMENT: (a, b) => a + b,
-    DECREMENT: (a, b) => a - b,
-  };
+  const [mode, setCommandMode] = useState("INPUT");
 
   const operationReducer = (prev, action) => {
-    // Previous
-    if (!actionState && !action["type"]) {
-      const operation = operationMap[actionState.type];
-      setInput(operation(actionState.value, action.value));
+    if(action.type === "RESET") {
+      return ({type: "", value: 0});
+    }
+    
+    if (prev["type"]) {
+      const operation = operationMap[prev.type];
+      setInput(operation(prev.value, action.value));
     }
 
-    switch (action.type) {
-      case "INCREMENT":
-        setAction({ type: "INCREMENT", value: parseInt(action.value, 10) });
-        break;
-
-      case "DECREMENT":
-        setAction({ type: "DECREMENT", value: parseInt(action.value, 10) });
-        break;
-
-      case "RESULT":
-        return action.value;
-
-      default:
-        break;
-    }
+    return action;
   };
 
-  const [result, dispatch] = useReducer(operationReducer, {
-    currentOperation: "",
+  const [queuedAction, dispatch] = useReducer(operationReducer, {
+    type: "",
     value: 0,
   });
 
@@ -103,11 +66,17 @@ export default function App() {
 
   const registerInput = (e) => {
     const value = parseInt(e.target.textContent, 10);
-    setInput(10*input + value);
+    if (mode === "INPUT") {
+      setInput(10 * input + value);
+    } else {
+      setInput(value);
+      setCommandMode("INPUT");
+    }
   };
 
   const registerOperand = (e) => {
     const value = e.target.textContent;
+    setCommandMode("ACTION");
     // Dispatch action based on operand type
     switch (value) {
       case "+":
@@ -119,15 +88,21 @@ export default function App() {
       case "=":
         dispatch({ type: "RESULT", value: input });
         break;
+      case "*":
+        dispatch({ type: "MULTIPLY", value: input });
+        break;
+      case "÷":
+        dispatch({ type: "DIVIDE", value: input });
+        break;
       default:
         break;
     }
-    resetInput();
   };
 
   const resetInput = () => {
     setInput(0);
-  };
+    dispatch({ type: "RESET" });
+  };  
 
   return (
     <Wrapper>
@@ -154,7 +129,9 @@ export default function App() {
         {/* Section to contain all calculator operands */}
         <OperandWrapper>
           {operands.map((operand) => (
-            <OperandButton onClick={registerInput}>{operand}</OperandButton>
+            <OperandButton key={operand} onClick={registerOperand}>
+              {operand}
+            </OperandButton>
           ))}
         </OperandWrapper>
       </InputWrapper>
