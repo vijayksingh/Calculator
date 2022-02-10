@@ -49,7 +49,14 @@ export default function App() {
     
     if (prev["type"]) {
       const operation = operationMap[prev.type];
-      setInput(operation(prev.value, action.value));
+      const result = operation(prev.value, action.value);
+      setInput(result);
+
+      action = {...action, value: result};
+    }
+
+    if(action.type === "EQUALS") {
+      return ({type: "", value: 0});
     }
 
     return action;
@@ -61,13 +68,21 @@ export default function App() {
   });
 
   const scientificButtons = ["AC", "±", "%"];
-  const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const digits = [0, ".", 1, 2, 3, 4, 5, 6, 7, 8, 9];
   const operands = ["+", "-", "*", "÷", "="];
 
   const registerInput = (e) => {
-    const value = parseInt(e.target.textContent, 10);
+    let value = parseInt(e.target.textContent, 10);
+    value = isNaN(value) ? e.target.textContent : value;
+
+    if (value === ".") {
+      setCommandMode("DECIMAL");
+    }
+
     if (mode === "INPUT") {
       setInput(10 * input + value);
+    } else if (mode === "DECIMAL") {
+      // Handle Logic for DECIMAL
     } else {
       setInput(value);
       setCommandMode("INPUT");
@@ -86,7 +101,7 @@ export default function App() {
         dispatch({ type: "DECREMENT", value: input });
         break;
       case "=":
-        dispatch({ type: "RESULT", value: input });
+        dispatch({ type: "EQUALS", value: input });
         break;
       case "*":
         dispatch({ type: "MULTIPLY", value: input });
